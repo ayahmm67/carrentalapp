@@ -1,0 +1,63 @@
+[
+  {
+    "make": "Honda",
+    "model": "CR-V",
+    "type": "SUV",
+    "category": "Standard",
+    "rentalCostPerDay": 55,
+    "comfort": "Good",
+    "maxPassengers": 5,
+    "mpg": 28
+  },
+  {
+    "make": "Chevrolet",
+    "model": "Silverado 1500",
+    "type": "Truck",
+    "category": "Standard",
+    "rentalCostPerDay": 55,
+    "comfort": "Good",
+    "maxPassengers": 5,
+    "mpg": 19
+  },
+  {
+    "make": "Honda",
+    "model": "CR-V Hybrid",
+    "type": "Hybrid",
+    "category": "Intermediate",
+    "rentalCostPerDay": 50,
+    "comfort": "Medium",
+    "maxPassengers": 4,
+    "mpg": 37
+  },
+  {
+    "make": "Honda",
+    "model": "Accord",
+    "type": "Sedan",
+    "category": "Intermediate",
+    "rentalCostPerDay": 50,
+    "comfort": "Medium",
+    "maxPassengers": 4,
+    "mpg": 31
+  },
+  {
+    "make": "Chevrolet",
+    "model": "Corvette",
+    "type": "Coupe",
+    "category": "Economy",
+    "rentalCostPerDay": 45,
+    "comfort": "Poor",
+    "maxPassengers": 4,
+    "mpg": 14
+  },
+  {
+    "make": "Toyota",
+    "model": "Sienna",
+    "type": "Minivan",
+    "category": "Van",
+    "rentalCostPerDay": 70,
+    "comfort": "Medium",
+    "maxPassengers": 7,
+    "mpg": 36
+  }
+ 
+]
