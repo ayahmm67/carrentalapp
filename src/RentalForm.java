@@ -8,15 +8,33 @@ import javax.swing.border.LineBorder;
 
 public class RentalForm extends JFrame {
 
-    private static final double GAS_PRICE_PER_GALLON = 2.25;
 
     private JTextField passengersField;
     private JTextField daysField;
     private JTextField mileageField;
     private JPanel resultPanel;
     private List<Car> cars;
+    private static final double GAS_PRICE_PER_GALLON = 2.25;
 
     public RentalForm() {
+
+        String[] roles = {"USER", "ADMIN"};
+String selectedRole = (String) JOptionPane.showInputDialog(
+        this,
+        "Select user role:",
+        "Login",
+        JOptionPane.QUESTION_MESSAGE,
+        null,
+        roles,
+        roles[0]
+);
+
+if (selectedRole == null) {
+    System.exit(0);
+}
+
+    currentUserRole = UserRole.valueOf(selectedRole);
+        
         try {
             cars = JsonCarLoader.loadCars("cars.json");
         } catch (IOException e) {
@@ -139,90 +157,139 @@ public class RentalForm extends JFrame {
         add(mainPanel);
     }
 
-    private void findBestCar() {
-        try {
-            String passengersText = getRealText(passengersField, "e.g., 4");
-            String daysText = getRealText(daysField, "e.g., 7");
-            String mileageText = getRealText(mileageField, "e.g., 500");
+    private enum UserRole {
+    ADMIN,
+    USER
+}
 
-            if (passengersText.isEmpty() || daysText.isEmpty() || mileageText.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Please fill in all fields.",
-                        "Input Error",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
+private UserRole currentUserRole = UserRole.USER;
 
-            int passengers = Integer.parseInt(passengersText);
-            int rentalDays = Integer.parseInt(daysText);
-            double mileage = Double.parseDouble(mileageText);
+private boolean hasAdminAccess() {
+    return currentUserRole == UserRole.ADMIN;
+}
 
-            if (passengers <= 0 || rentalDays <= 0 || mileage < 0) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Please enter valid positive values.",
-                        "Input Error",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
 
-            List<Car> suitableCars = new ArrayList<>();
-            for (Car car : cars) {
-                if (car.getMaxPassengers() >= passengers) {
-                    suitableCars.add(car);
-                }
-            }
+    private boolean areInputsFilled(String passengersText, String daysText, String mileageText) {
+    return !passengersText.isEmpty() && !daysText.isEmpty() && !mileageText.isEmpty();
+    }
 
-            if (suitableCars.isEmpty()) {
-                showNoCarMessage(passengers);
-                return;
-            }
+    private boolean areInputValuesValid(int passengers, int rentalDays, double mileage) {
+    return passengers > 0 && passengers <= 7
+            && rentalDays > 0
+            && mileage >= 0;
+    }
 
-            double minCost = Double.MAX_VALUE;
-            for (Car car : suitableCars) {
-                double totalCost = car.calculateTotalCost(rentalDays, mileage, GAS_PRICE_PER_GALLON);
-                if (totalCost < minCost) {
-                    minCost = totalCost;
-                }
-            }
 
-            List<Car> cheapestCars = new ArrayList<>();
-            for (Car car : suitableCars) {
-                double totalCost = car.calculateTotalCost(rentalDays, mileage, GAS_PRICE_PER_GALLON);
-                if (Math.abs(totalCost - minCost) < 0.0001) {
-                    cheapestCars.add(car);
-                }
-            }
+private List<Car> getSuitableCars(List<Car> cars, int passengers) {
+    List<Car> suitableCars = new ArrayList<>();
 
-            int bestComfortRank = -1;
-            for (Car car : cheapestCars) {
-                int rank = getComfortRank(car.getComfort());
-                if (rank > bestComfortRank) {
-                    bestComfortRank = rank;
-                }
-            }
-
-            List<Car> bestCars = new ArrayList<>();
-            for (Car car : cheapestCars) {
-                if (getComfortRank(car.getComfort()) == bestComfortRank) {
-                    bestCars.add(car);
-                }
-            }
-
-            showResults(bestCars, rentalDays, mileage);
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Passengers, rental days, and mileage must be numeric values.",
-                    "Input Error",
-                    JOptionPane.WARNING_MESSAGE
-            );
+    for (Car car : cars) {
+        if (car.getMaxPassengers() >= passengers) {
+            suitableCars.add(car);
         }
     }
+
+    return suitableCars;
+}
+
+
+private List<Car> getCheapestCars(List<Car> cars, int rentalDays, double mileage) {
+    List<Car> cheapestCars = new ArrayList<>();
+    double minCost = Double.MAX_VALUE;
+
+    for (Car car : cars) {
+        double totalCost = car.calculateTotalCost(rentalDays, mileage, GAS_PRICE_PER_GALLON);
+
+        if (totalCost < minCost) {
+            minCost = totalCost;
+            cheapestCars.clear();
+            cheapestCars.add(car);
+        } else if (totalCost == minCost) {
+            cheapestCars.add(car);
+        }
+    }
+
+    return cheapestCars;
+}
+
+private List<Car> getBestComfortCars(List<Car> cars) {
+    List<Car> bestCars = new ArrayList<>();
+    String bestComfort = "";
+
+    for (Car car : cars) {
+        String comfort = car.getComfort();
+
+        if (isBetterComfort(comfort, bestComfort)) {
+            bestComfort = comfort;
+            bestCars.clear();
+            bestCars.add(car);
+        } else if (comfort.equals(bestComfort)) {
+            bestCars.add(car);
+        }
+    }
+
+    return bestCars;
+}
+
+private boolean isBetterComfort(String c1, String c2) {
+    return getComfortRank(c1) > getComfortRank(c2);
+}
+
+private void findBestCar() {
+
+    if (cars == null || cars.isEmpty()) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Car data is not available. Please check the data file.",
+                "System Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+        return;
+    }
+
+    try {
+        String passengersText = getRealText(passengersField, "e.g., 4");
+        String daysText = getRealText(daysField, "e.g., 7");
+        String mileageText = getRealText(mileageField, "e.g., 500");
+
+         int passengers = Integer.parseInt(passengersText);
+        int rentalDays = Integer.parseInt(daysText);
+        double mileage = Double.parseDouble(mileageText);
+
+        if (!areInputsFilled(passengersText, daysText, mileageText)) {
+            JOptionPane.showMessageDialog(this, "Please fill in all fields.");
+            return;
+        }
+
+        if (!areInputValuesValid(passengers, rentalDays, mileage)) {
+            JOptionPane.showMessageDialog(this, "Please enter valid positive values.");
+            return;
+        }
+
+        List<Car> suitableCars = getSuitableCars(cars, passengers);
+
+        if (suitableCars.isEmpty()) {
+            showNoCarMessage(passengers);
+            return;
+        }
+
+        List<Car> cheapestCars = getCheapestCars(suitableCars, rentalDays, mileage);
+
+        List<Car> bestCars = getBestComfortCars(cheapestCars);
+
+        showResults(bestCars, rentalDays, mileage);
+
+    } catch (NumberFormatException e) {
+    JOptionPane.showMessageDialog(this,
+            "Passengers, rental days, and mileage must be numeric values.");
+} catch (IllegalArgumentException | IllegalStateException e) {
+    JOptionPane.showMessageDialog(this,
+            e.getMessage(),
+            "Validation Error",
+            JOptionPane.WARNING_MESSAGE);
+}
+}
+
 
     private void showEmptyResult() {
         resultPanel.removeAll();
@@ -358,22 +425,26 @@ public class RentalForm extends JFrame {
         totalBox.add(totalValue, BorderLayout.EAST);
 
         card.add(carName);
-        card.add(Box.createVerticalStrut(18));
-        card.add(createInfoRow("Type", car.getType()));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Category", car.getCategory()));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Comfort Level", car.getComfort()));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Maximum Passengers", String.valueOf(car.getMaxPassengers())));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Fuel Efficiency (MPG)", String.format(java.util.Locale.US, "%.0f", car.getMpg())));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Rental Cost", formatMoney(rentalCost)));
-        card.add(Box.createVerticalStrut(8));
-        card.add(createInfoRow("Gas Cost", formatMoney(gasCost)));
-        card.add(Box.createVerticalStrut(20));
-        card.add(totalBox);
+card.add(Box.createVerticalStrut(18));
+card.add(createInfoRow("Maximum Passengers", String.valueOf(car.getMaxPassengers())));
+card.add(Box.createVerticalStrut(8));
+
+if (hasAdminAccess()) {
+    card.add(createInfoRow("Type", car.getType()));
+    card.add(Box.createVerticalStrut(8));
+    card.add(createInfoRow("Category", car.getCategory()));
+    card.add(Box.createVerticalStrut(8));
+    card.add(createInfoRow("Comfort Level", car.getComfort()));
+    card.add(Box.createVerticalStrut(8));
+    card.add(createInfoRow("Fuel Efficiency (MPG)", String.format(java.util.Locale.US, "%.0f", car.getMpg())));
+    card.add(Box.createVerticalStrut(8));
+    card.add(createInfoRow("Rental Cost", formatMoney(rentalCost)));
+    card.add(Box.createVerticalStrut(8));
+    card.add(createInfoRow("Gas Cost", formatMoney(gasCost)));
+    card.add(Box.createVerticalStrut(20));
+}
+
+card.add(totalBox);
 
         return card;
     }
@@ -403,15 +474,13 @@ public class RentalForm extends JFrame {
 }
 
     private int getComfortRank(String comfort) {
-        if (comfort.equalsIgnoreCase("Poor")) {
-            return 1;
-        } else if (comfort.equalsIgnoreCase("Medium")) {
-            return 2;
-        } else if (comfort.equalsIgnoreCase("Good")) {
-            return 3;
-        }
-        return 0;
+    switch (comfort) {
+        case "Poor": return 1;
+        case "Medium": return 2;
+        case "Good": return 3;
+        default: return 0;
     }
+}
 
     private JPanel createFieldSection(String labelText, JTextField field) {
         JPanel section = new JPanel();
